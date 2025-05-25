@@ -1,33 +1,47 @@
 # syntax=docker/dockerfile:1-labs
 
-FROM node:20-alpine AS node_base
+# FROM node:20-alpine AS node_base
 
-FROM node_base AS node_deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+# FROM node_base AS node_deps
+# WORKDIR /app
+# COPY package.json package-lock.json ./
+# RUN npm ci --legacy-peer-deps
 
-FROM node_base AS node_builder
-WORKDIR /app
-COPY --from=node_deps /app/node_modules ./node_modules
-COPY --exclude=./api . .
-RUN NODE_ENV=production npm run build
+# FROM node_base AS node_builder
+# WORKDIR /app
+# COPY --from=node_deps /app/node_modules ./node_modules
+# COPY --exclude=./api . .
+# RUN NODE_ENV=production npm run build`
 
 FROM python:3.11-slim AS py_deps
 WORKDIR /app
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY api/requirements.txt ./api/
-RUN pip install --no-cache -r api/requirements.txt
+# RUN pip install --no-cache -r api/requirements.txt
+RUN pip install --no-cache -i https://pypi.tuna.tsinghua.edu.cn/simple -r api/requirements.txt
 
 # Use Python 3.11 as final image
 FROM python:3.11-slim
+
+# 拷贝虚拟环境，保证所有依赖可用
+COPY --from=py_deps /opt/venv /opt/venv
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Set working directory
 WORKDIR /app
 
 # Install Node.js and npm
-RUN apt-get update && apt-get install -y \
+RUN if [ -f /etc/apt/sources.list ]; then \
+      sed -i 's|http://deb.debian.org|https://mirrors.aliyun.com|g' /etc/apt/sources.list && \
+      sed -i 's|http://security.debian.org|https://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list; \
+    fi && \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+      sed -i 's|http://deb.debian.org|https://mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
+      sed -i 's|http://security.debian.org|https://mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list.d/debian.sources; \
+    fi && \
+    apt-get update && apt-get install -y \
     curl \
     gnupg \
     git \
@@ -39,16 +53,17 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/opt/venv/bin:$PATH"
-
 # Copy Python dependencies
-COPY --from=py_deps /opt/venv /opt/venv
 COPY api/ ./api/
 
 # Copy Node app
-COPY --from=node_builder /app/public ./public
-COPY --from=node_builder /app/.next/standalone ./
-COPY --from=node_builder /app/.next/static ./.next/static
+# COPY --from=node_builder /app/public ./public
+# COPY --from=node_builder /app/.next/standalone ./
+# COPY --from=node_builder /app/.next/static ./.next/static
+
+COPY ./public ./public
+COPY ./.next/standalone ./
+COPY ./.next/static ./.next/static
 
 # Expose the port the app runs on
 EXPOSE ${PORT:-8001} 3000
