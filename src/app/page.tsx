@@ -72,7 +72,7 @@ export default function Home() {
     return key;
   };
 
-  const [repositoryInput, setRepositoryInput] = useState('https://code.devops.xiaohongshu.com/fe/formula');
+  const [repositoryInput, setRepositoryInput] = useState('/Users/liyingdong/Documents/fork/temp-fork/vite');
 
   // Provider-based model selection state
   const [provider, setProvider] = useState<string>('');
@@ -83,7 +83,7 @@ export default function Home() {
   // Wiki type state - default to comprehensive view
   const [isComprehensiveView, setIsComprehensiveView] = useState<boolean>(true);
 
-  const [excludedDirs, setExcludedDirs] = useState('');
+  const [excludedDirs, setExcludedDirs] = useState(['__tests__', 'examples', 'e2e', '.nx', 'node_modules', '.github'].join('\n'));
   const [excludedFiles, setExcludedFiles] = useState('');
   const [includedDirs, setIncludedDirs] = useState('');
   const [includedFiles, setIncludedFiles] = useState('');
